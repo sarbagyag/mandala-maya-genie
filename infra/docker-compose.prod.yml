@@ -17,8 +17,10 @@ services:
       - redis
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
       - "traefik.http.routers.maya-ws.rule=Host(`maya.mandalafoods.co`)"
       - "traefik.http.routers.maya-ws.entrypoints=websecure"
+      - "traefik.http.routers.maya-ws.tls=true"
       - "traefik.http.routers.maya-ws.tls.certresolver=le"
       - "traefik.http.services.maya-ws.loadbalancer.server.port=8081"
     networks:
@@ -43,7 +45,16 @@ services:
       - ../.env
     depends_on:
       - redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.maya-admin.rule=Host(`maya.mandalafoods.co`) && PathPrefix(`/admin`)"
+      - "traefik.http.routers.maya-admin.entrypoints=websecure"
+      - "traefik.http.routers.maya-admin.tls=true"
+      - "traefik.http.routers.maya-admin.tls.certresolver=le"
+      - "traefik.http.services.maya-admin.loadbalancer.server.port=8083"
     networks:
+      - proxy
       - internal
 
 volumes:
