@@ -1,0 +1,56 @@
+version: "3.9"
+services:
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+
+  channel-adapter:
+    build: ../services/channel-adapter
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PORT=8081
+      - ALLOWED_ORIGINS=https://mandalafoods.co,https://www.mandalafoods.co,https://maya.mandalafoods.co
+    depends_on:
+      - redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.maya-ws.rule=Host(`maya.mandalafoods.co`)"
+      - "traefik.http.routers.maya-ws.entrypoints=websecure"
+      - "traefik.http.routers.maya-ws.tls.certresolver=le"
+      - "traefik.http.services.maya-ws.loadbalancer.server.port=8081"
+    networks:
+      - proxy
+      - internal
+
+  orchestrator:
+    build: ../services/orchestrator
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - COGNITIVE_CORE_URL=http://cognitive-core:8083
+      - PORT=8082
+    depends_on:
+      - redis
+      - cognitive-core
+    networks:
+      - internal
+
+  cognitive-core:
+    build: ../services/cognitive-core
+    env_file:
+      - ../.env
+    depends_on:
+      - redis
+    networks:
+      - internal
+
+volumes:
+  redis_data:
+
+networks:
+  proxy:
+    external: true
+  internal:
+    driver: bridge
