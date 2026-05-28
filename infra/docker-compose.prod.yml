@@ -1,5 +1,24 @@
 version: "3.9"
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "54323:5432"
+    environment:
+      - POSTGRES_DB=maya
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+      - ../migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d maya"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
   redis:
     image: redis:7-alpine
     volumes:
@@ -45,6 +64,7 @@ services:
       - ../.env
     depends_on:
       - redis
+      - postgres
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
@@ -59,6 +79,7 @@ services:
 
 volumes:
   redis_data:
+  pgvector_data:
 
 networks:
   proxy:
