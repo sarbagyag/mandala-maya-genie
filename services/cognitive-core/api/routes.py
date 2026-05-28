@@ -9,6 +9,7 @@ from schemas.message import ChatRequest, ChatResponse
 from rag.pipeline import run_pipeline
 from rag.ingestion import ingest_file
 from llm.client import get_llm
+from db.persistence import upsert_conversation, save_messages
 
 logger = logging.getLogger(__name__)
 
@@ -221,6 +222,12 @@ async def chat(request: ChatRequest):
     except Exception as e:
         logger.error(f"Pipeline error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to generate response")
+
+    try:
+        conv_id = upsert_conversation(request.session_id, request.channel)
+        save_messages(conv_id, request.message, result["response"])
+    except Exception as e:
+        logger.warning(f"Failed to persist conversation to DB: {e}")
 
     llm = get_llm()
     model_name = getattr(llm, "model", None) or getattr(llm, "model_name", "unknown")

@@ -12,6 +12,7 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import PGVector
 from rag.embeddings import GeminiRESTEmbeddings
+from db.persistence import record_ingestion
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,12 @@ def ingest_file(file_path: str) -> int:
     )
 
     logger.info(f"Ingested {len(chunks)} chunks into collection '{COLLECTION_NAME}'")
+
+    try:
+        record_ingestion(os.path.basename(file_path), len(chunks))
+    except Exception as e:
+        logger.warning(f"Failed to record ingestion in DB: {e}")
+
     return len(chunks)
 
 
