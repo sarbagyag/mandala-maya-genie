@@ -30,10 +30,10 @@ def ingest_file(file_path: str) -> int:
     ext = os.path.splitext(file_path)[1].lower()
     if ext == ".pdf":
         loader = PyPDFLoader(file_path)
-    elif ext in (".txt", ".text"):
+    elif ext in (".txt", ".text", ".md", ".markdown"):
         loader = TextLoader(file_path)
     else:
-        raise ValueError(f"Unsupported file type: {ext}. Use .pdf or .txt")
+        raise ValueError(f"Unsupported file type: {ext}. Use .pdf, .txt, or .md")
 
     documents = loader.load()
     logger.info(f"Loaded {len(documents)} pages/sections from {file_path}")

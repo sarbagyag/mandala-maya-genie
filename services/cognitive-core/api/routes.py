@@ -119,9 +119,9 @@ _UPLOAD_UI = """<!DOCTYPE html>
       <div class="drop-zone" id="dropZone">
         <div class="icon">📄</div>
         <div>Drag &amp; drop or <strong>click to browse</strong></div>
-        <div class="hint">PDF or TXT — max 50 MB</div>
+        <div class="hint">PDF, TXT, or Markdown — max 50 MB</div>
         <div class="filename" id="filename"></div>
-        <input type="file" id="file" accept=".pdf,.txt" required>
+        <input type="file" id="file" accept=".pdf,.txt,.md,.markdown" required>
       </div>
     </div>
 
@@ -252,8 +252,8 @@ async def admin_ingest(
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     ext = os.path.splitext(file.filename or "")[1].lower()
-    if ext not in (".pdf", ".txt"):
-        raise HTTPException(status_code=400, detail="Only .pdf and .txt files supported")
+    if ext not in (".pdf", ".txt", ".md", ".markdown"):
+        raise HTTPException(status_code=400, detail="Only .pdf, .txt, and .md files supported")
 
     # Save uploaded file to temp location
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
