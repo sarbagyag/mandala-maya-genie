@@ -12,7 +12,7 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import PGVector
 from rag.embeddings import GeminiRESTEmbeddings
-from db.persistence import record_ingestion
+from db.persistence import begin_ingestion, complete_ingestion, delete_document
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ CHUNK_SIZE = 512
 CHUNK_OVERLAP = 64
 
 
-def ingest_file(file_path: str) -> int:
+def ingest_file(file_path: str, original_filename: str | None = None) -> int:
     """Load, chunk, embed and upsert a file into pgvector.
 
     Returns the number of chunks ingested.
@@ -46,24 +46,42 @@ def ingest_file(file_path: str) -> int:
     chunks = splitter.split_documents(documents)
     logger.info(f"Split into {len(chunks)} chunks")
 
+    # Register document in DB first so we can attach its ID to chunk metadata
+    doc_id = None
+    try:
+        doc_id = begin_ingestion(original_filename or os.path.basename(file_path))
+        for chunk in chunks:
+            chunk.metadata["document_id"] = doc_id
+    except Exception as e:
+        logger.warning(f"Failed to begin ingestion record: {e}")
+
     # Embed and upsert
     embeddings = GeminiRESTEmbeddings()
     connection_string = os.getenv("DATABASE_URL")
 
-    PGVector.from_documents(
-        documents=chunks,
-        embedding=embeddings,
-        collection_name=COLLECTION_NAME,
-        connection_string=connection_string,
-        pre_delete_collection=False,
-    )
+    try:
+        PGVector.from_documents(
+            documents=chunks,
+            embedding=embeddings,
+            collection_name=COLLECTION_NAME,
+            connection_string=connection_string,
+            pre_delete_collection=False,
+        )
+    except Exception:
+        if doc_id:
+            try:
+                delete_document(doc_id)
+            except Exception:
+                pass
+        raise
 
     logger.info(f"Ingested {len(chunks)} chunks into collection '{COLLECTION_NAME}'")
 
-    try:
-        record_ingestion(os.path.basename(file_path), len(chunks))
-    except Exception as e:
-        logger.warning(f"Failed to record ingestion in DB: {e}")
+    if doc_id:
+        try:
+            complete_ingestion(doc_id, len(chunks))
+        except Exception as e:
+            logger.warning(f"Failed to complete ingestion record: {e}")
 
     return len(chunks)
 

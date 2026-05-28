@@ -20,9 +20,24 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- LangChain PGVector will create the langchain_pg_collection
--- and langchain_pg_embedding tables automatically on first ingest.
--- Do not create them manually.
+CREATE TABLE IF NOT EXISTS langchain_pg_collection (
+    name varchar NULL,
+    cmetadata json NULL,
+    uuid uuid NOT NULL,
+    CONSTRAINT langchain_pg_collection_pkey PRIMARY KEY (uuid)
+);
+
+CREATE TABLE IF NOT EXISTS langchain_pg_embedding (
+    collection_id uuid NULL,
+    embedding vector NULL,
+    document varchar NULL,
+    cmetadata json NULL,
+    custom_id varchar NULL,
+    uuid uuid NOT NULL,
+    CONSTRAINT langchain_pg_embedding_pkey PRIMARY KEY (uuid),
+    CONSTRAINT langchain_pg_embedding_collection_id_fkey
+        FOREIGN KEY (collection_id) REFERENCES langchain_pg_collection(uuid) ON DELETE CASCADE
+);
 
 CREATE INDEX IF NOT EXISTS idx_conversations_session_id ON conversations(session_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
