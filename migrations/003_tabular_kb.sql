@@ -30,3 +30,9 @@ CREATE TABLE IF NOT EXISTS document_rows (
 
 CREATE INDEX IF NOT EXISTS idx_document_rows_dataset_id ON document_rows(dataset_id);
 CREATE INDEX IF NOT EXISTS idx_document_rows_row_data ON document_rows USING GIN (row_data);
+
+-- Links an ingested_documents record (the admin UI's list/delete surface,
+-- see db/persistence.py) to its structured dataset, so deleting a csv/xlsx
+-- upload from the admin panel also cleans up document_metadata/document_rows.
+-- NULL for prose (.pdf/.txt/.md) uploads.
+ALTER TABLE ingested_documents ADD COLUMN IF NOT EXISTS dataset_id TEXT REFERENCES document_metadata(id) ON DELETE SET NULL;

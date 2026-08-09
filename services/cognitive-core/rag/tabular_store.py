@@ -5,7 +5,7 @@ splitting a table by character count separates cells from their column
 headers, and vector similarity can't filter/sort/aggregate anyway. Instead
 each row is stored as JSONB in `document_rows`, keyed by a `dataset_id`,
 alongside a `document_metadata` registry that records the column schema per
-sheet (see migrations/002_tabular_kb.sql).
+sheet (see migrations/003_tabular_kb.sql).
 
 At query time an LLM tool (rag/pipeline.py) reads the schema first, then
 writes a constrained SQL SELECT against these two tables -- this is what
