@@ -54,15 +54,12 @@ def begin_ingestion(filename: str) -> str:
             return str(cur.fetchone()[0])
 
 
-def complete_ingestion(doc_id: str, chunk_count: int, dataset_id: str | None = None):
-    """dataset_id links this record to document_metadata for csv/xlsx
-    uploads (see rag/tabular_store.py), so delete_document can cascade into
-    document_rows too. None for prose (.pdf/.txt/.md) uploads."""
+def complete_ingestion(doc_id: str, chunk_count: int):
     with _conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE ingested_documents SET chunk_count = %s, dataset_id = %s WHERE id = %s",
-                (chunk_count, dataset_id, doc_id),
+                "UPDATE ingested_documents SET chunk_count = %s WHERE id = %s",
+                (chunk_count, doc_id),
             )
 
 
@@ -73,13 +70,6 @@ def delete_document(doc_id: str):
                 "DELETE FROM langchain_pg_embedding WHERE cmetadata->>'document_id' = %s",
                 (doc_id,),
             )
-            cur.execute(
-                """
-                DELETE FROM document_metadata
-                WHERE id = (SELECT dataset_id FROM ingested_documents WHERE id = %s)
-                """,
-                (doc_id,),
-            )  # cascades into document_rows via its FK
             cur.execute("DELETE FROM ingested_documents WHERE id = %s", (doc_id,))
 
 

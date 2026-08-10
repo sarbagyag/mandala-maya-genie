@@ -455,11 +455,8 @@ async def admin_ingest(
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     ext = os.path.splitext(file.filename or "")[1].lower()
-    if ext not in (".pdf", ".txt", ".md", ".markdown", ".csv", ".xlsx", ".xls"):
-        raise HTTPException(
-            status_code=400,
-            detail="Only .pdf, .txt, .md, .csv, .xlsx and .xls files supported",
-        )
+    if ext not in (".pdf", ".txt", ".md", ".markdown"):
+        raise HTTPException(status_code=400, detail="Only .pdf, .txt, and .md files supported")
 
     # Save uploaded file to temp location
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
